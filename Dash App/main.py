@@ -117,6 +117,14 @@ print('The R squared value is: ', r2_score(y_test, yhat))
 print("RMSE", np.sqrt(mean_squared_error(y_test, yhat)))
 
 #    THE DASH APP
+
+# Actual vs predicted figure
+fig = px.line(df_rf, x=df_rf.index, y=["Actual", "Predicted"], title="Actual vs Predicted Sales")
+
+# fig = px.line(df_rf, x=df_rf.index, y=["Actual", "Predicted"])
+        # return fig
+
+# Initialize Dash app
 app = dash.Dash(__name__)
 app.layout = html.Div(style={"textAlign": "ljust", 'width': "1200px", "font-family": "Verdana"},
 
@@ -186,14 +194,19 @@ app.layout = html.Div(style={"textAlign": "ljust", 'width': "1200px", "font-fami
                               placeholder="Fill in",
                           ),
 
-                          html.Div(dcc.Graph(id="Actual_vs_predicted")),
+                          html.Div(dcc.Graph(id="Actual_vs_predicted",
+                            config={"displayModeBar": False},
+                            animate=True,
+                            figure=fig)),
 
                       ])
 
 
 # CALLBACKS
 
-# Callback for the visualization
+# Callback for the visualization, lineplot does not need callback
+
+
 
 # Callback for the predicted value
 @app.callback(Output(component_id="prediction_result", component_property="children"),
@@ -215,8 +228,7 @@ def make_prediction(tavg, havg, wavg, pavg, date_day,
         rf_prediction1 = rfcv.predict(input_X)
         return "Predicted Sales: N{}".format(rf_prediction1)
 
-        # fig = px.line(df_rf, x=df_rf.index, y=["Actual", "Predicted"])
-        # return fig
+
 
     except ValueError:
         return "Fill in all input values below"
