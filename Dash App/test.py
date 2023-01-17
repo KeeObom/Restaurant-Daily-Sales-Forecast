@@ -141,7 +141,7 @@ app.layout = html.Div([
         initial_visible_month=date(2023, 1, 1),
         date=date.today()
     ),
-    #html.Div(id='output-container-date-picker-single'),
+    html.Div(id='output-container-date-picker-single'),
 
     dcc.DatePickerRange(
         id='my-date-picker-range',
@@ -151,8 +151,11 @@ app.layout = html.Div([
         end_date=date.today()
     ),
     html.Div(id='output-container-date-picker-range'),
+    html.Br(),
 
-    dcc.Graph(id='prediction-lineplot'),
+    dcc.Graph(id='line_plot', figure={}),
+
+    # dcc.Graph(id='prediction-lineplot'),
 
     html.H4(children="Temperature"),
 
@@ -204,8 +207,9 @@ app.layout = html.Div([
 #         date_day = date_object.strftime("%d")
 #         return dayofweek, date_day
 
-@app.callback(
-               Output(component_id="prediction-lineplot", component_property="figure"),
+@app.callback([Output(component_id="prediction_result", component_property="children"),
+                Output(component_id='line_plot', component_property='figure')],
+              # Output(component_id="prediction-lineplot", component_property="figure"),
               [Input(component_id="my-date-picker-range", component_property="start_date"),
                Input(component_id='my-date-picker-range', component_property='end_date'),
                Input(component_id="tavg_input", component_property="value"),
@@ -336,7 +340,7 @@ def make_prediction(start_date, end_date, tavg, havg, wavg, pavg):
 
                 # convert results to a dataframe
                 value_list.append(round(rf_prediction1[0]))
-                day_list.append(i.strftime('%A'))
+                day_list.append(i.strftime('%A %d %b'))
             fin_df = pd.DataFrame({'Sales': value_list, 'Days': day_list})
 
             # Plot the lineplot
@@ -344,8 +348,9 @@ def make_prediction(start_date, end_date, tavg, havg, wavg, pavg):
             # input_X = sc.transform(X_prediction1)
             # # make prediction with the model rfcv
             # rf_prediction1 = rfcv.predict(input_X)
-            #return "Predicted Sales: N{}".format(fin_df)
-            return fig1
+            container = "Predicted Sales: N{}".format(fin_df)
+            return container, fig1
+            #return fig1
 
         except ValueError:
             return "Fill in all input values below"
