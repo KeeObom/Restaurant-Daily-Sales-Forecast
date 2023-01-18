@@ -15,7 +15,6 @@ from dash.dependencies import Input, Output
 import plotly.express as px
 
 #  DATA PREPARATION
-import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
 import seaborn as sns
@@ -66,11 +65,9 @@ X_train, X_test, y_train, y_test = train_test_split(X_sc, y, test_size=0.2, rand
 
 from sklearn.metrics import explained_variance_score, mean_absolute_error, r2_score
 from time import time
-from sklearn.linear_model import LinearRegression, Ridge, Lasso
-from sklearn.neighbors import KNeighborsRegressor
 from sklearn.ensemble import GradientBoostingRegressor
 from sklearn.ensemble import ExtraTreesRegressor, RandomForestRegressor
-from sklearn.tree import DecisionTreeRegressor
+
 
 # import gridsearchcv
 from sklearn.model_selection import GridSearchCV
@@ -85,11 +82,19 @@ from sklearn.model_selection import GridSearchCV
 # print(model.best_estimator_,'\n')
 
 # So after Tuning ang getting the best parameters for the RandomForest, let's use it and fit the the model
-rfcv = RandomForestRegressor(max_features=0.5, max_samples=0.6, n_estimators=200)
-rfcv.fit(X_train, y_train)
+# rfcv = RandomForestRegressor(max_features=0.5, max_samples=0.6, n_estimators=200)
+# rfcv.fit(X_train, y_train)
+
+# Load trained model instead of training model each time program runs
+from sklearn import model_selection, datasets
+import joblib
+import pickle
+# Load the model
+# Load model and use for predict
+loaded_model = joblib.load("rfcv_model_22.6.joblib")
 
 # Make prediction
-yhat = rfcv.predict(X_test)
+yhat = loaded_model.predict(X_test)
 # Check metrics
 from sklearn.metrics import r2_score
 
@@ -114,7 +119,7 @@ score_mse = np.sqrt(mean_absolute_error(y_test, yhat))
 print("The Root Mean Squared Error of our Model is {}".format(round(score_mse, 2)))
 
 # Get the r-squared score
-print('How well model explains trained data: ', rfcv.score(X_train, y_train))
+print('How well model explains trained data: ', loaded_model.score(X_train, y_train))
 
 print('The R squared value is: ', r2_score(y_test, yhat))
 
@@ -127,10 +132,13 @@ fig = px.line(df_rf, x=df_rf.index, y=["Actual", "Predicted"], title="Actual vs 
 
 # fig = px.line(df_rf, x=df_rf.index, y=["Actual", "Predicted"])
 # return fig
-
+import datetime
+begin = date.today()
 
 app = Dash(__name__)
 app.layout = html.Div([
+
+    html.H1(id="Title", children="RESTAURANT DAILY SALES FORECAST"),
 
     html.H2(id="prediction_result", children="Predicted Sales is: "),
 
@@ -148,14 +156,18 @@ app.layout = html.Div([
         min_date_allowed=date(1995, 8, 5),
         max_date_allowed=date(2030, 12, 31),
         initial_visible_month=date(2023, 1, 1),
-        end_date=date.today()
+        #end_date=date.today(),
+        start_date=date.today(),
+        #end_date=begin + datetime.timedelta(days=7)
     ),
     html.Div(id='output-container-date-picker-range'),
     html.Br(),
 
     dcc.Graph(id='line_plot', figure={}),
+    html.Br(),
 
-    # dcc.Graph(id='prediction-lineplot'),
+    html.Br(),
+    html.Table(id="table-container", children={}),
 
     html.H4(children="Temperature"),
 
@@ -194,22 +206,11 @@ app.layout = html.Div([
 ])
 
 
-# @app.callback(
-#     Output('output-container-date-picker-single', 'children'),
-#     Input('my-date-picker-single', 'date'))
-# def update_output(date_value):
-#     string_prefix = 'You have selected: '
-#     if date_value is not None:
-#         date_object = date.fromisoformat(date_value)
-#         date_string = date_object.strftime('%B %d, %Y')
-#         # return string_prefix + date_string
-#         dayofweek = date.weekday(date_object)
-#         date_day = date_object.strftime("%d")
-#         return dayofweek, date_day
 
 @app.callback([Output(component_id="prediction_result", component_property="children"),
-                Output(component_id='line_plot', component_property='figure')],
-              # Output(component_id="prediction-lineplot", component_property="figure"),
+                Output(component_id='line_plot', component_property='figure'),
+               Output(component_id="table-container", component_property="children")],
+
               [Input(component_id="my-date-picker-range", component_property="start_date"),
                Input(component_id='my-date-picker-range', component_property='end_date'),
                Input(component_id="tavg_input", component_property="value"),
@@ -310,11 +311,7 @@ def make_prediction(start_date, end_date, tavg, havg, wavg, pavg):
         #### So the dash datepicker returns date in the format "YYYY-MM-DD" as a string
         from datetime import date
 
-        # date_object = date.fromisoformat(date_value)
-        # # date_string = date_object.strftime('%B %d, %Y')
-        # df_prediction1 = pd.DataFrame(
-        #     {'Tavg': tavg, 'Havg': havg, 'Wavg': wavg, 'Pavg': pavg, 'Date_day': date_object.strftime("%d"), 'Date_dayofweek': date.weekday(date_object)}, index=[0])
-        # X_prediction1 = df_prediction1[['Tavg', 'Havg', 'Wavg', 'Pavg', 'Date_day', 'Date_dayofweek']].to_numpy()
+
 
         try:
             # Return PREDICTIONS for past 7 and future 7 days
@@ -335,7 +332,7 @@ def make_prediction(start_date, end_date, tavg, havg, wavg, pavg):
                 # Use standard scaler
                 input_X = sc.transform(X_prediction1)
                 # make prediction with the model rfcv
-                rf_prediction1 = rfcv.predict(input_X)
+                rf_prediction1 = loaded_model.predict(input_X)
                 print(f'{round(rf_prediction1[0]):,}', i.strftime('%A'))
 
                 # convert results to a dataframe
@@ -345,12 +342,29 @@ def make_prediction(start_date, end_date, tavg, havg, wavg, pavg):
 
             # Plot the lineplot
             fig1 = px.line(fin_df, x='Days', y='Sales', markers=True)
-            # input_X = sc.transform(X_prediction1)
-            # # make prediction with the model rfcv
-            # rf_prediction1 = rfcv.predict(input_X)
+
             container = "Predicted Sales: N{}".format(fin_df)
-            return container, fig1
-            #return fig1
+
+            # work on table before display
+            # swap column positions and show thousandth values
+            fin_df1 = fin_df.copy()
+            columns_titles = ["Days", "Sales"]
+            fin_df1 = fin_df1.reindex(columns=columns_titles)
+
+            # Get thousandth values
+            for sale in fin_df1['Sales']:
+                fin_df1['Sales'].replace(sale, f'{sale:,}', inplace=True)
+            fin_df1.rename(columns={"Sales": "Sales (₦)"}, inplace=True)
+
+            # Get the dataframe to a table
+            import dash_bootstrap_components as dbc
+            table = dbc.Table.from_dataframe(fin_df1, striped=True, bordered=True, hover=True)
+            # import dash_table as dt
+
+            # table = html.Div([dt.DataTable(id='table',columns=['Sales', 'Day'], data=fin_df.to_dict("rows")])
+
+            return container, fig1, table
+
 
         except ValueError:
             return "Fill in all input values below"
