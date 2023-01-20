@@ -125,7 +125,102 @@ print('The R squared value is: ', r2_score(y_test, yhat))
 
 print("RMSE", np.sqrt(mean_squared_error(y_test, yhat)))
 
+
+# Get the weather function
+def switch_weather(weather):
+    if weather == 0:
+        return "Clear Sky"
+    elif weather == 1:
+        return "Mainly Clear"
+    elif weather == 2:
+        return "Partly Cloudy"
+    elif weather == 3:
+        return "Overcast"
+    elif weather == 45:
+        return "Fog"
+    elif weather == 48:
+        return "Rime Fog"
+    elif weather == 51:
+        return "Light Drizzle"
+    elif weather == 53:
+        return "Moderate Drizzle"
+    elif weather == 55:
+        return "Dense Drizzle"
+    elif weather == 56:
+        return "Light Freezing Drizzle"
+    elif weather == 57:
+        return "Dense Freezing Drizzle"
+    elif weather == 61:
+        return "Slight Rain"
+    elif weather == 63:
+        return "Moderate Rain"
+    elif weather == 65:
+        return "Heavy Rain"
+    elif weather == 66:
+        return "Light Freezing Rain"
+    elif weather == 67:
+        return "Heavy Freezing Rain"
+    elif weather == 71:
+        return "Slight Snowfall"
+    elif weather == 73:
+        return "Moderate Snowfall"
+    elif weather == 75:
+        return "Heavy Snowfall"
+    elif weather == 80:
+        return "Slight Rain Showers"
+    elif weather == 81:
+        return "Moderate Rain Showers"
+    elif weather == 82:
+        return "Violent Rain Showers"
+    elif weather == 85:
+        return "Slight Snow Showers"
+    elif weather == 86:
+        return "Heavy Snow Showers"
+    elif weather == 95:
+        return "Thunderstorm"
+    elif weather == 96:
+        return "Thunderstorm with Slight Hail"
+    elif weather == 99:
+        return "Thunderstorm with Heavy Hail"
 #    THE DASH APP
+import dash_bootstrap_components as dbc
+
+# make cards function
+weather1 = '/assets/weather2.jpg'
+n = 0
+def make_card(title, amount, weather, status):
+    global weather1
+    if status == 3 or 0 or 1:
+        weather1 = '/assets/sunny.JPG'
+    elif status == 80 or 81 or 82 or 85:
+        weather1 = '/assets/rain.JPG'
+    elif status == 51 or 53 or 55:
+        weather1 = '/assets/two_cloud.JPG'
+    elif status == 45:
+        weather1 = '/assets/fog.JPG'
+    elif status == 61 or 63 or 65:
+        weather1 = '/assets/cloud.JPG'
+    elif status == 2:
+        weather1 = '/assets/cloud.JPG'
+    elif status == 71 or 73 or 75:
+        weather1 = '/assets/fog.JPG'
+    elif status == 95 or 96 or 99:
+        weather1 = '/assets/thunderstorm.JPG'
+
+    return dbc.Card(
+        [
+            dbc.CardHeader(html.H2(f"₦{title}"), style={"background": "red", "maxWidth": 350, 'height': '50px',
+                   'border': '0px',
+                   'borderRadius': '5px', 'backgroundColor':
+                   'black', 'color': 'white', 'textTransform':
+                   'uppercase', 'fontSize': '9px'}),
+            # src='/assets/weather2.jpg'
+            dbc.CardImg(src=weather1, top=True, style={"maxWidth": 350, "maxheight": 175}),
+            dbc.CardBody(html.H5(f"{amount} {weather}", id=title), style={"color": "black", "background": "LightCoral", "maxWidth": 350, "maxheight": 70, 'fontSize': '20px', 'border': '0px','borderRadius': '5px'}),
+        ],
+         style={"width": "13rem"}, # className="text-center shadow", style={"maxwidth": 175},
+    )
+
 
 # Actual vs predicted figure
 fig = px.line(df_rf, x=df_rf.index, y=["Actual", "Predicted"], title="Actual vs Predicted Sales", template="seaborn")
@@ -135,21 +230,24 @@ fig = px.line(df_rf, x=df_rf.index, y=["Actual", "Predicted"], title="Actual vs 
 import datetime
 begin = date.today()
 
-app = Dash(__name__)
+app = Dash(__name__, external_stylesheets=[dbc.themes.JOURNAL]) # JOURNAL or
+
+summary = pd.DataFrame({"₦₦₦": ["₦₦₦_","₦|₦₦","₦₦|₦"], "Weather_": ["Weather","Weather","Weather" ], "Pic": ["Pic","Pic","Pic"], "Status": ["Status", "Status", "Status"]})
+
 app.layout = html.Div([
 
-    html.H1(id="Title", children="RESTAURANT DAILY SALES FORECAST"),
+    html.H1(id="Title", children="RESTAURANT DAILY SALES FORECAST", style={'textAlign': 'center'}),
 
-    html.H2(id="prediction_result", children="Predicted Sales is: "),
+    html.H2(id="prediction_result", children="Pick Date Range: "),
 
-    dcc.DatePickerSingle(
-        id='my-date-picker-single',
-        min_date_allowed=date(1995, 8, 5),
-        max_date_allowed=date(2030, 12, 31),
-        initial_visible_month=date(2023, 1, 1),
-        date=date.today()
-    ),
-    html.Div(id='output-container-date-picker-single'),
+    # dcc.DatePickerSingle(
+    #     id='my-date-picker-single',
+    #     min_date_allowed=date(1995, 8, 5),
+    #     max_date_allowed=date(2030, 12, 31),
+    #     initial_visible_month=date(2023, 1, 1),
+    #     date=date.today()
+    # ),
+    # html.Div(id='output-container-date-picker-single'),
 
     dcc.DatePickerRange(
         id='my-date-picker-range',
@@ -167,57 +265,72 @@ app.layout = html.Div([
     html.Br(),
 
     html.Br(),
-    html.Table(id="table-container", children={}),
+    html.H2(id="table-header", children="FORECAST TABLE", style={'textAlign': 'center'}),
+    html.Table(id="table-container", children={}, style={'marginLeft': 'auto', 'marginRight': 'auto'}),
 
-    html.H4(children="Temperature"),
+    html.Br(),
 
-    dcc.Input(
-        id="tavg_input",  # change to Tavg
-        type="number",
-        placeholder="Fill in",
+    # CARDS CARDS CARDS
+    html.H2(id="cards-header", children="INFO CARDS", style={'textAlign': 'center'}),
+    dbc.Container(
+    #html.Div(
+        dbc.Row([dbc.Col(make_card(k, v, weather_stat, status)) for k, v , weather_stat, status in summary.itertuples(index=False)],  style={"width":"800px"}), # The 800px sets the behind border size
+         className="p-5", id="card_container",
     ),
 
-    # html.Div(id='updatemode-output-container_2', style={'margin-top': 20}), #not sure what for
+    html.A("@keeobom🐦", href="https://twitter.com/keeobom"),
+    # dcc.Link(html.A('@keeobom🐦'), href="https://twitter.com/keeobom", className="tab"),
 
-    html.H4(children="Humidity"),
-
-    dcc.Input(
-        id="havg_input",  #
-        type="number",
-        placeholder="Fill in",
-    ),
-
-    html.H4(children="Wind Speed"),
-
-    dcc.Input(
-        id="wavg_input",
-        type="number",
-        placeholder="Fill in",
-    ),
-
-    html.H4(children="Pressure"),
-
-    dcc.Input(
-        id="pavg_input",
-        type="number",
-        placeholder="Fill in",
-    ),
+    # dcc.Input(
+    #     id="tavg_input",  # change to Tavg
+    #     type="number",
+    #     placeholder="Fill in",
+    # ),
+    #
+    #
+    #
+    # html.H4(children="Humidity"),
+    #
+    # dcc.Input(
+    #     id="havg_input",  #
+    #     type="number",
+    #     placeholder="Fill in",
+    # ),
+    #
+    # html.H4(children="Wind Speed"),
+    #
+    # dcc.Input(
+    #     id="wavg_input",
+    #     type="number",
+    #     placeholder="Fill in",
+    # ),
+    #
+    # html.H4(children="Pressure"),
+    #
+    # dcc.Input(
+    #     id="pavg_input",
+    #     type="number",
+    #     placeholder="Fill in",
+    # ),
 
 ])
 
 
 
-@app.callback([Output(component_id="prediction_result", component_property="children"),
+@app.callback([# Output(component_id="prediction_result", component_property="children"),
                 Output(component_id='line_plot', component_property='figure'),
-               Output(component_id="table-container", component_property="children")],
+               Output(component_id="table-container", component_property="children"),
+               Output(component_id="card_container", component_property="children"),
+               ],
 
               [Input(component_id="my-date-picker-range", component_property="start_date"),
                Input(component_id='my-date-picker-range', component_property='end_date'),
-               Input(component_id="tavg_input", component_property="value"),
-               Input(component_id="havg_input", component_property="value"),
-               Input(component_id="wavg_input", component_property="value"),
-               Input(component_id="pavg_input", component_property="value")])
-def make_prediction(start_date, end_date, tavg, havg, wavg, pavg):
+               # Input(component_id="tavg_input", component_property="value"),
+               # Input(component_id="havg_input", component_property="value"),
+               # Input(component_id="wavg_input", component_property="value"),
+               # Input(component_id="pavg_input", component_property="value")
+               ])
+def make_prediction(start_date, end_date):
     if start_date is not None:
 
         # Set start and end date for API call
@@ -343,7 +456,13 @@ def make_prediction(start_date, end_date, tavg, havg, wavg, pavg):
             # Plot the lineplot
             fig1 = px.line(fin_df, x='Days', y='Sales', markers=True)
 
-            container = "Predicted Sales: N{}".format(fin_df)
+            fig1.update_layout(
+                plot_bgcolor='#FDEDEC',
+                paper_bgcolor='#F2D7D5',
+                font_color='#212F3C'
+            )
+
+            # container = "Predicted Sales: N{}".format(fin_df)
 
             # work on table before display
             # swap column positions and show thousandth values
@@ -359,15 +478,31 @@ def make_prediction(start_date, end_date, tavg, havg, wavg, pavg):
             # Get the dataframe to a table
             import dash_bootstrap_components as dbc
             table = dbc.Table.from_dataframe(fin_df1, striped=True, bordered=True, hover=True)
-            # import dash_table as dt
 
-            # table = html.Div([dt.DataTable(id='table',columns=['Sales', 'Day'], data=fin_df.to_dict("rows")])
+            # Add weather code to dataframe
+            fin_df2 = fin_df1.copy()
+            fin_df2['weather'] = [switch_weather(i) for i in weather_code]
+            fin_df2['status'] = weather_code
 
-            return container, fig1, table
+            # change weather picture for each loop
+            print(fin_df2['status'])
+
+
+
+            # cards
+            cardd = dbc.Container(
+                # html.Div(
+                dbc.Row([dbc.Col(make_card(v, k, weather_stat, status)) for k, v, weather_stat, status in fin_df2.itertuples(index=False)], style={"width": "1000px"}),
+                # The 800px sets the behind border size
+                className="p-5", id="card_container",
+            ),
+
+
+            return fig1, table, cardd #, container
 
 
         except ValueError:
-            return "Fill in all input values below"
+            return "Please indicate the date range"
 
 
 if __name__ == '__main__':
